@@ -18,8 +18,8 @@ export default {
       type: [Boolean, String],
       default: false
     },
-    width: {type: [Number,String], default: "auto"},
-    height: {type: [Number,String], default: "auto"}
+    width: {type: [Number,String], default: "100%"},
+    height: {type: [Number,String], default: "100%"}
   }
 }
 </script>

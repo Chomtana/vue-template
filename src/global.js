@@ -21,6 +21,26 @@ function newArray(row,col,val) {
   return res;
 }
 
+function giveItem(itemName) {
+  if (!store.state.player.inventory[itemName]) store.state.player.inventory[itemName] = 0;
+  store.state.player.inventory[itemName]++;
+  console.log("giveItem "+itemName)
+}
+
+function giveItemFunc(itemName) {
+  return function() {
+    giveItem(itemName);
+  }
+}
+
+function revealItem(itemName,prop) {
+  if (prop == 0) return;
+  var x = Math.random();
+  if (x<=prop) {
+    console.log("Reveal "+itemName);
+  }
+}
+
 export default function () {
   if (!window.store) {
     Vue.use(Vuex)
@@ -31,7 +51,9 @@ export default function () {
       //(but it can has value of null or undefined)
       state: {
         blocks: newArray(10, 50 , {
+          digged: false,
           hp: 5,
+          maxHp: 5,
           armor: 0,
           onCollide: function(target) {
             this.decreaseHp();
@@ -41,15 +63,31 @@ export default function () {
               store.commit("rejectPos",[store.state.player,{
                 //top: $("#block-"+this._row+"-"+this._col).position().top - store.state.player.bound.prog.height
               }])
+            } else {
+              if (!this.digged) {
+                this.onDigged();
+              }
+              this.digged = true;
             }
           },
           decreaseHp: function() {
             if (this.hp > 0) {
               this.hp -= Math.max(store.state.player.drill.damage - this.armor,0);
               this.hp = Math.max(this.hp,0)
+            } else {
+              if (!this.digged) {
+                this.digged = true;
+                this.onDigged();
+              }
             }
-          }
+          },
+          onDigged: () => {
+            giveItem("grass");
+            revealItem("stone",0.75);
+          },
+          texture: 'url(https://c1.staticflickr.com/4/3516/3811405243_70511d8797_b.jpg)'
         }),
+        items: newArray(10, 50, []),
         blockWidth: 50,
         blockHeight: 50,
         player: {
@@ -57,20 +95,23 @@ export default function () {
             prog: {
               top: -40.1,
               left: 1000,
-              width: 40,
-              height: 40
+              width: 30,
+              height: 30
             },
             real: {
               top: -40.1,
               left: 1000,
-              width: 40,
-              height: 40
+              width: 30,
+              height: 30
             }
           },
           horizontalSpeed: 5,
           verticalSpeed: 5,
           drill: {
-            damage: 0.1
+            damage: 0.5
+          },
+          inventory: {
+            
           },
           onCollide: function(target) {
             console.log(target)
@@ -81,7 +122,18 @@ export default function () {
           left: -20
         },
         playableWidth: 500,
-        playableHeight: 500
+        playableHeight: 500,
+        items_info: {
+          grass: {
+            weight: 1,
+            value: 1
+          },
+          stone: {
+            weight: 5,
+            value: 20,
+            texture: 'url(http://pluspng.com/img-png/png-stone-stone-png-1024.png)'
+          }
+        }
       },
       mutations: {
         moveHorizontal: _.throttle((state, target) => {
@@ -108,6 +160,9 @@ export default function () {
           }
           target.bound.prog = _.cloneDeep(target.bound.real)
         }
+      },
+      getters: {
+
       }
     })
 
@@ -126,6 +181,8 @@ export default function () {
         for(let x in window.store.getters) {
           res[x] = ()=>window.store.getters[x]
         }
+        
+        //console.log(res)
         
         return res;
       })(),

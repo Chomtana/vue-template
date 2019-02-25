@@ -11,6 +11,36 @@
         <div class="d-flex flex-wrap" :style="{
           width: blocks[0].length*blockWidth+'px'
         }">
+          <template v-for="(blockRow,row) in items">
+            <template v-for="(block,col) in blockRow">
+              <div v-if="block.length==0" :key="col+' '+row" :style="{
+                width: blockWidth+'px',
+                height: blockHeight+'px',
+                'background': 'transparent',
+                'text-align': 'center',
+                'border': '1px solid'
+              }" :id="'item-block-'+row+'-'+col" class="item-block">
+                
+              </div>
+              <template v-if="block.length>0">
+                <div v-for="item in block" :key="col+' '+row+' '+item.name" :style="{
+                  width: blockWidth+'px',
+                  height: blockHeight+'px',
+                  'background': (item.texture?item.texture:'transparent'),
+                  'text-align': 'center',
+                  'border': '1px solid'
+                }" :id="'item-block-'+row+'-'+col" class="item-block">
+                  
+                </div>
+              </template>
+            </template>
+          </template>
+        </div>
+      </CamLayer>
+      <CamLayer>
+        <div class="d-flex flex-wrap" :style="{
+          width: blocks[0].length*blockWidth+'px'
+        }">
           <template v-for="(blockRow,row) in blocks">
             <div v-for="(block,col) in blockRow" :key="col+' '+row" :style="{
               width: blockWidth+'px',
@@ -27,6 +57,7 @@
       </CamLayer>
       <Player />
     </LayerContainer>
+    
     <b-modal id="inventory-modal" title="Inventory" ok-only>
       <div v-for="(item,itemName) in player.inventory" :key="itemName">
         {{item}}x {{itemName}}  
@@ -36,6 +67,21 @@
       </div>
     </b-modal>
     <b-button v-b-modal.inventory-modal>Inventory</b-button>
+    
+    <b-modal id="quests-modal" title="Quests" ok-only>
+      <div v-for="(quest,i) in quests" :key="i">
+        <b-card :title="quest.title">
+          <div class="mb-2">
+            {{quest.description}}
+          </div>
+          <div>
+            {{quest.isCompleted() ? "Completed" : "In Progress"}}  
+          </div>
+        </b-card>
+        
+      </div>
+    </b-modal>
+    <b-button v-b-modal.quests-modal>Quests</b-button>
   </div>
 </template>
 
@@ -65,6 +111,13 @@ export default {
         sum += store.state.items_info[itemName].weight * store.state.player.inventory[itemName];
       }
       return sum;
+    }
+  },
+  mounted() {
+    for(let quest of this.quests) {
+      if (quest.inprogress) {
+        quest.milestone = _.cloneDeep(this.milestone);
+      }
     }
   }
 }
@@ -102,8 +155,8 @@ a {
   //transition: 0.1s;
 }
 
-.block {
-  background-size: cover !important;
+.block, .item-block {
+  background-size: 100% 100% !important;
   background-repeat: no-repeat !important;
   
 }

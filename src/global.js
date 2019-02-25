@@ -24,6 +24,10 @@ function newArray(row,col,val) {
 function giveItem(itemName) {
   if (!store.state.player.inventory[itemName]) store.state.player.inventory[itemName] = 0;
   store.state.player.inventory[itemName]++;
+  
+  if (!store.state.milestone.inventory[itemName]) store.state.milestone.inventory[itemName] = 0;
+  store.state.milestone.inventory[itemName]++;
+  
   console.log("giveItem "+itemName)
 }
 
@@ -33,12 +37,20 @@ function giveItemFunc(itemName) {
   }
 }
 
-function revealItem(itemName,prop) {
+function revealItem(itemName,row,col,prop) {
   if (prop == 0) return;
   var x = Math.random();
   if (x<=prop) {
-    console.log("Reveal "+itemName);
+    console.log("Reveal "+row+" "+col+" "+itemName);
+    store.state.items[row][col].push(store.state.items_info[itemName]);
   }
+}
+
+function itemCollide(row,col) {
+  for(let item of store.state.items[row][col]) {
+    giveItem(item.name);
+  }
+  Vue.set(store.state.items[row],col,[]);
 }
 
 export default function () {
@@ -81,9 +93,9 @@ export default function () {
               }
             }
           },
-          onDigged: () => {
+          onDigged: function() {
             giveItem("grass");
-            revealItem("stone",0.75);
+            revealItem("stone",this._row,this._col,0.75);
           },
           texture: 'url(https://c1.staticflickr.com/4/3516/3811405243_70511d8797_b.jpg)'
         }),
@@ -117,6 +129,11 @@ export default function () {
             console.log(target)
           }
         },
+        milestone: {
+          inventory: {
+            
+          }
+        },
         camera: {
           top: 0,
           left: -20
@@ -126,14 +143,34 @@ export default function () {
         items_info: {
           grass: {
             weight: 1,
-            value: 1
+            value: 1,
+            name: "grass"
           },
           stone: {
             weight: 5,
             value: 20,
-            texture: 'url(http://pluspng.com/img-png/png-stone-stone-png-1024.png)'
+            texture: 'url(http://pluspng.com/img-png/png-stone-stone-png-1024.png)',
+            name: "stone"
           }
-        }
+        },
+        quests: [
+          {
+            title: "Pick one grass",
+            description: "You are new to this world, try picking one grass to make you get used to this world.",
+            inprogress: true,
+            isCompleted: function () {
+              if (!this.milestone) return false;
+              var milestone = store.state.milestone;
+              var inventory = milestone.inventory;
+              var start_milestone = this.milestone;
+              var start_inventory = start_milestone.inventory;
+              
+              if (!start_inventory["grass"]) start_inventory["grass"] = 0;
+              if (!inventory["grass"]) return false;
+              return inventory["grass"] - start_inventory["grass"] >=1;
+            }
+          }
+        ]
       },
       mutations: {
         moveHorizontal: _.throttle((state, target) => {
@@ -259,6 +296,21 @@ export default function () {
       )
     }
     
+    function checkCollidePerfectIn(boundA,boundB) {
+      //console.log(boundB.left,boundA.left + boundA.width)
+      return (
+        (boundA.left+boundA.width <= boundB.left+boundB.width) &&
+        (boundA.left >= boundB.left) &&
+        (boundA.top >= boundB.top) &&
+        (boundA.top+boundA.height <= boundB.top+boundB.height)
+      ) || (
+        (boundB.left+boundB.width <= boundA.left+boundA.width) &&
+        (boundB.left >= boundA.left) &&
+        (boundB.top >= boundA.top) &&
+        (boundB.top+boundB.height <= boundA.top+boundA.height)
+      )
+    }
+    
     
     setInterval(function() {
       //Player
@@ -282,6 +334,14 @@ export default function () {
           if (blockBound) {
             if (checkCollide(store.state.player.bound.prog,blockBound)) {              
               store.state.blocks[playerBlock[0]+i][playerBlock[1]+j].onCollide(store.state.player)
+            }
+          }
+          
+          var itemBlockBound = jqueryBound($('#item-block-'+(playerBlock[0]+i)+'-'+(playerBlock[1]+j)))
+          
+          if (itemBlockBound) {
+            if (checkCollidePerfectIn(store.state.player.bound.prog,itemBlockBound)) {              
+              itemCollide(playerBlock[0]+i,playerBlock[1]+j)
             }
           }
         }

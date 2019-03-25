@@ -50,17 +50,25 @@
               'border': '1px solid',
               'opacity': block.hp/block.maxHp
             }" :id="'block-'+row+'-'+col" class="block">
-              {{blocks[row][col].hp}}
+              
             </div>
           </template>
         </div>
+      </CamLayer>
+      <CamLayer :class="['npc']" :id="'npc-'+npc_id" v-for="(npc,npc_id) in npcs" :key="npc_id"  :top="npc.bound.real.top" :left="npc.bound.real.left" :width="npc.bound.real.width" :height="npc.bound.real.height"
+        :style="{
+          'background-image': 'url('+npc.img+')',
+          'display': (npc.show?'block':'none')
+        }"
+      >
+        
       </CamLayer>
       <Player />
     </LayerContainer>
     
     <b-modal id="inventory-modal" title="Inventory" ok-only>
       <div v-for="(item,itemName) in player.inventory" :key="itemName">
-        {{item}}x {{itemName}}  
+        {{item}}x {{items_info[itemName].title}}  
       </div>
       <div>
         <b>Total weight: </b> {{playerTotalWeight()}}
@@ -69,8 +77,13 @@
     <b-button v-b-modal.inventory-modal>Inventory</b-button>
     
     <b-modal id="quests-modal" title="Quests" ok-only>
+      <input type="checkbox" v-model="showCompletedQuests"> Show completed quests
       <div v-for="(quest,i) in quests" :key="i">
-        <b-card :title="quest.title">
+        <b-card :title="quest.title" v-if="quest.inprogress()" :class="['mb-3',(quest.isCompleted() && !showCompletedQuests?'d-none':'')]"
+          :style='{
+            "background-color": (quest.isCompleted()?"greenyellow":"yellow")
+          }'
+        >
           <div class="mb-2">
             {{quest.description}}
           </div>
@@ -101,7 +114,8 @@ export default {
   },
   data () {
     return {
-      msg: 'Welcome to Your Vue.js App dasdasdasdasd'
+      msg: 'Welcome to Your Vue.js App dasdasdasdasd',
+      showCompletedQuests: true
     }
   },
   methods: {
@@ -114,11 +128,14 @@ export default {
     }
   },
   mounted() {
-    for(let quest of this.quests) {
-      if (quest.inprogress) {
-        quest.milestone = _.cloneDeep(this.milestone);
+    setInterval(() => {
+      for(let quest of this.quests) {
+        if (quest.inprogress() && !quest.milestone) {
+          //console.log("asasa");
+          quest.milestone = _.cloneDeep(this.milestone);
+        }
       }
-    }
+    },100)
   }
 }
 </script>
@@ -153,6 +170,13 @@ a {
 
 .moveable {
   //transition: 0.1s;
+}
+
+.npc {
+  background-color: green;
+  background-size: 100% 100%;
+  background-repeat: none;
+  
 }
 
 .block, .item-block {
